@@ -16,7 +16,7 @@ print(f"Using device: {device}")
 
 #========================================================================
 # loading data
-dir = 'grouped_data/1_day'
+dir = 'grouped_data/5_days'
 
 X_train = np.load(f'{dir}/X_train.npy')
 Y_train = np.load(f'{dir}/y_train.npy')
@@ -33,6 +33,14 @@ Y_test = Y_test.flatten()
 print('test sets:')
 print(X_test.shape)
 print(Y_test.shape)
+
+X_val = np.load(f'{dir}/X_val.npy') 
+Y_val = np.load(f'{dir}/y_val.npy') 
+Y_val = Y_val.flatten()
+
+print('val sets:')
+print(X_val.shape)
+print(Y_val.shape)
 
 print("X_train stats:")
 print("Min:", np.min(X_train))
@@ -54,13 +62,16 @@ X_train_scaled = X_train.reshape(len(X_train), -1)
 Y_train_scaled = Y_train
 X_test_scaled = X_test.reshape(len(X_test), -1)
 Y_test_scaled = Y_test
+X_val_scaled = X_val.reshape(len(X_val), -1)
+Y_val_scaled = Y_val
 
 
 print(f'X_train.shape: {X_train_scaled.shape}')
 print(f'Y_train.shape: {Y_train_scaled.shape}')
 print(f'X_test.shape: {X_test_scaled.shape}')
 print(f'Y_test.shape: {Y_test_scaled.shape}')
-
+print(f'X_val.shape: {X_val_scaled.shape}')
+print(f'Y_val.shape: {Y_val_scaled.shape}')
 
 
 
@@ -119,10 +130,10 @@ batch_size = 1024  # Increased batch size due to large dataset
 learning_rate = 0.0001
 weight_decay = 1e-5   # Added weight decay
 num_epochs = 100
-d_model = 80
-nhead = 8
-num_layers = 4
-dim_feedforward = 256
+d_model = 128
+nhead = 4
+num_layers = 2
+dim_feedforward = 128
 validation_split = 0.2
 
 # Prepare data
@@ -130,6 +141,9 @@ X_train = torch.FloatTensor(X_train_scaled).to(device)
 Y_train = torch.FloatTensor(Y_train_scaled).to(device)
 X_test = torch.FloatTensor(X_test_scaled).to(device)
 Y_test = torch.FloatTensor(Y_test_scaled).to(device)
+X_val = torch.FloatTensor(X_val_scaled).to(device)
+Y_val = torch.FloatTensor(Y_val_scaled).to(device)
+
 
 dataset = TensorDataset(X_train, Y_train)
 train_size = int((1 - validation_split) * len(dataset))
@@ -140,12 +154,12 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size)
 test_loader = DataLoader(TensorDataset(X_test, Y_test), batch_size=batch_size)
 
-input_dim = X_train.shape[1]  # This should be 14
+input_dim = X_train.shape[1]  
 model = StockPriceTransformer(input_dim, d_model, nhead, num_layers, dim_feedforward).to(device)
 
 
 # Load the best model
-model.load_state_dict(torch.load('transformer_models/best_model.pth', map_location=device))
+model.load_state_dict(torch.load('transformer_models/model2/best_model.pth', map_location=device))
 
 # Inference without DataLoader
 model.eval()
@@ -161,3 +175,35 @@ mae = np.mean(np.abs(predictions - true_values))
 r2 = r2_score(true_values, predictions)
 
 print(f'Test RMSE: {rmse:.4f}, MAE: {mae:.4f}, R^2: {r2}')
+
+#=======
+# training loss
+model.eval()
+with torch.no_grad():
+    X_train = X_train.to(device)
+    predictions = model(X_train).cpu().numpy()
+    true_values = Y_train.numpy()
+
+# Calculate RMSE
+mse = np.mean((predictions - true_values)**2)
+rmse = np.sqrt(mse)
+mae = np.mean(np.abs(predictions - true_values))
+r2 = r2_score(true_values, predictions)
+
+print(f'Train RMSE: {rmse:.4f}, MAE: {mae:.4f}, R^2: {r2}')
+
+#=======
+# validation loss
+model.eval()
+with torch.no_grad():
+    X_val = X_val.to(device)
+    predictions = model(X_val).cpu().numpy()
+    true_values = Y_val.numpy()
+
+# Calculate RMSE
+mse = np.mean((predictions - true_values)**2)
+rmse = np.sqrt(mse)
+mae = np.mean(np.abs(predictions - true_values))
+r2 = r2_score(true_values, predictions)
+
+print(f'Val RMSE: {rmse:.4f}, MAE: {mae:.4f}, R^2: {r2}')
