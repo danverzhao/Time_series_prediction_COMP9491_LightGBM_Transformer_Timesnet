@@ -45,7 +45,7 @@ print(Y_val.shape)
 
 #=============================================================
 
-train_data = lgb.Dataset(X_train, label=Y_train)
+train_data = lgb.Dataset(X_test, label=Y_test)
 
 # Set parameters for LightGBM
 params = {
