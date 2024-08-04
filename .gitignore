@@ -6,3 +6,4 @@
 /transformer_models
 /my_data
 train.csv
+timesnet_model_6epochs.pth

@@ -142,5 +142,6 @@ ax3.set_title('R-squared (R^2)')
 ax3.set_xlabel('Epoch')
 ax3.set_ylabel('R^2')
 
-plt.tight_layout()
+plt.subplots_adjust(hspace=0.4)
+# plt.tight_layout()
 plt.show()
